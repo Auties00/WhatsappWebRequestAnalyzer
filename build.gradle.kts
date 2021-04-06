@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.jvm.tasks.Jar
 
 plugins {
     kotlin("jvm") version "1.4.21"
@@ -20,9 +21,29 @@ repositories {
 
 dependencies {
     implementation("com.github.auties00", "whatsappweb4j", "1.2")
-    implementation("org.seleniumhq.selenium", "selenium-java", "4.0.0-beta-2");
-
+    implementation("org.seleniumhq.selenium", "selenium-java", "4.0.0-beta-1");
 }
+
+val fatJar = task("fatJar", type = Jar::class) {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    archiveBaseName.set("${project.name}-with-dependencies")
+    manifest {
+        attributes["Implementation-Title"] = "Analyzer"
+        attributes["Implementation-Version"] = archiveVersion
+        attributes["Main-Class"] = "it.auties.whatsapp4j.MainKt"
+    }
+
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    with(tasks.jar.get())
+}
+
+
+tasks {
+    "build" {
+        dependsOn(fatJar)
+    }
+}
+
 
 tasks.withType<JavaCompile> {
     options.forkOptions.jvmArgs?.add("--add-opens")
@@ -40,5 +61,6 @@ tasks.withType<JavaCompile> {
 }
 
 application {
-    mainClass.set("MainKt")
+    mainClass.set("it.auties.whatsapp4j.MainKt")
 }
+

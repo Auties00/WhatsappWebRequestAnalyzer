@@ -1,3 +1,5 @@
+package it.auties.whatsapp4j
+
 import it.auties.whatsapp4j.binary.BinaryDecoder
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.devtools.DevTools
@@ -20,9 +22,11 @@ import org.openqa.selenium.devtools.v86.runtime.model.PropertyDescriptor
 import org.openqa.selenium.devtools.v86.runtime.model.RemoteObject
 import org.openqa.selenium.devtools.v86.runtime.model.RemoteObjectId
 import org.openqa.selenium.devtools.v86.runtime.Runtime
+import java.lang.Exception
 
 import java.util.*
 
+const val BREAKPOINT = 996400 // This is the line where the ChromeDev debugger should stop the execution, this may change in the future. Research a way to determine it at runtime instead
 val decoder = BinaryDecoder()
 lateinit var whatsappKeys: WhatsappKeys
 
@@ -84,18 +88,22 @@ fun onMessageSent(msg: WebSocketFrameSent) {
 }
 
 fun initializeKeys(jsonResponse: JsonResponse) {
-    val res = jsonResponse.toModel(UserInformationResponse::class.java)
-    val base64Secret = res.secret() ?: return
-    val secret = BinaryArray.forBase64(base64Secret)
-    val pubKey = secret.cut(32)
-    val sharedSecret = CypherUtils.calculateSharedSecret(pubKey.data(), whatsappKeys.privateKey.toByteArray())
-    val sharedSecretExpanded = CypherUtils.hkdfExpand(sharedSecret, 80)
-    val hmacValidation = CypherUtils.hmacSha256(secret.cut(32).merged(secret.slice(64)), sharedSecretExpanded.slice(32, 64))
-    Validate.isTrue(hmacValidation == secret.slice(32, 64), "Cannot login: Hmac validation failed!")
-    val keysEncrypted = sharedSecretExpanded.slice(64).merged(secret.slice(64))
-    val key = sharedSecretExpanded.cut(32)
-    val keysDecrypted = CypherUtils.aesDecrypt(keysEncrypted, key)
-    whatsappKeys.encKey = keysDecrypted.cut(32)
+    try {
+        val res = jsonResponse.toModel(UserInformationResponse::class.java)
+        val base64Secret = res.secret() ?: return
+        val secret = BinaryArray.forBase64(base64Secret)
+        val pubKey = secret.cut(32)
+        val sharedSecret = CypherUtils.calculateSharedSecret(pubKey.data(), whatsappKeys.privateKey.toByteArray())
+        val sharedSecretExpanded = CypherUtils.hkdfExpand(sharedSecret, 80)
+        val hmacValidation = CypherUtils.hmacSha256(secret.cut(32).merged(secret.slice(64)), sharedSecretExpanded.slice(32, 64))
+        Validate.isTrue(hmacValidation == secret.slice(32, 64), "Cannot login: Hmac validation failed!")
+        val keysEncrypted = sharedSecretExpanded.slice(64).merged(secret.slice(64))
+        val key = sharedSecretExpanded.cut(32)
+        val keysDecrypted = CypherUtils.aesDecrypt(keysEncrypted, key)
+        whatsappKeys.encKey = keysDecrypted.cut(32)
+    }catch (e: Exception){
+        e.printStackTrace()
+    }
 }
 
 fun decodeBase64EncodedBinaryMessage(payload: String, offset: Int = 0, isRequest: Boolean = false) {
@@ -119,8 +127,11 @@ fun initializeSelenium(): ChromeDriver {
 }
 
 fun onWhatsappScriptLoaded(tools: DevTools, script: ScriptParsed) {
-    if (script.url != "https://web.whatsapp.com/bootstrap_qr.513916447b41999e9e9b.js") return
-    tools.send(Debugger.setBreakpoint(Location(script.scriptId, 0, Optional.of(990085)), Optional.empty()))
+    if (!script.url.contains("https://web.whatsapp.com/bootstrap_qr")) {
+        return
+    }
+
+    tools.send(Debugger.setBreakpoint(Location(script.scriptId, 0, Optional.of(BREAKPOINT)), Optional.empty()))
 }
 
 fun onBreakpointTriggered(tools: DevTools, paused: Paused) {
@@ -157,9 +168,10 @@ fun findKeyValue(property: String, id: RemoteObjectId, tools: DevTools): List<By
 
 fun extractUnsignedIntArray(tools: DevTools, prop: PropertyDescriptor): List<Byte> {
     val propsId = tools.send(Runtime.getProperties(prop.value.orElseThrow().objectId.orElseThrow(), Optional.empty(), Optional.empty(), Optional.empty()))
-        .result
-        .firstOrNull { it.name == "[[Uint8Array]]" }
-        ?.run { value.map { it.objectId.orElseThrow() }.orElseThrow() }
+        .internalProperties
+        .orElseThrow()
+        .first { it.name == "[[Uint8Array]]" }
+        .run { value.map { it.objectId.orElseThrow() }.orElseThrow() }
 
     return tools.send(Runtime.getProperties(propsId, Optional.empty(), Optional.empty(), Optional.empty()))
         .result

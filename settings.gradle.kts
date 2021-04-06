@@ -1,2 +1,2 @@
-rootProject.name = "whatsapprequestanalyzer"
+rootProject.name = "whatsapp4j-request-analyzer"
 
