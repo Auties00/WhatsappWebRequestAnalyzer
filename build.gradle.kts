@@ -21,7 +21,7 @@ repositories {
 
 dependencies {
     implementation("com.github.auties00", "whatsappweb4j", "1.2")
-    implementation("org.seleniumhq.selenium", "selenium-java", "4.0.0-beta-1");
+    implementation("org.seleniumhq.selenium", "selenium-java", "4.0.0-beta-2")
 }
 
 val fatJar = task("fatJar", type = Jar::class) {
