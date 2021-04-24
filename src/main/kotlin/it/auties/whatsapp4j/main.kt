@@ -5,6 +5,7 @@ import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.devtools.DevTools
 import it.auties.whatsapp4j.binary.BinaryArray
 import it.auties.whatsapp4j.model.WhatsappNode
+import it.auties.whatsapp4j.model.WhatsappProtobuf
 import it.auties.whatsapp4j.model.WhatsappResponse
 import it.auties.whatsapp4j.response.impl.UserInformationResponse
 import it.auties.whatsapp4j.response.model.JsonResponse
@@ -23,10 +24,10 @@ import org.openqa.selenium.devtools.v86.runtime.model.RemoteObject
 import org.openqa.selenium.devtools.v86.runtime.model.RemoteObjectId
 import org.openqa.selenium.devtools.v86.runtime.Runtime
 import java.lang.Exception
+import java.lang.RuntimeException
 
 import java.util.*
 
-const val BREAKPOINT = 996400 // This is the line where the ChromeDev debugger should stop the execution, this may change in the future. Research a way to determine it at runtime instead
 val decoder = BinaryDecoder()
 lateinit var whatsappKeys: WhatsappKeys
 
@@ -48,7 +49,7 @@ fun onJsonMessageSent(request: WhatsappResponse){
     println("Sent JSON Message $request")
 }
 
-fun onBinaryMessageSent(tag: String, request: WhatsappNode){
+fun onBinaryMessageSent(tag: String, request: WhatsappNode) {
     println("Sent Binary Message $tag,$request")
 }
 
@@ -69,6 +70,8 @@ fun onMessageReceived(msg: WebSocketFrameReceived) {
         return
     }
 
+    WhatsappProtobuf.ProtocolMessage.getDefaultInstance().type
+
     decodeBase64EncodedBinaryMessage(payload)
 }
 
@@ -88,22 +91,18 @@ fun onMessageSent(msg: WebSocketFrameSent) {
 }
 
 fun initializeKeys(jsonResponse: JsonResponse) {
-    try {
-        val res = jsonResponse.toModel(UserInformationResponse::class.java)
-        val base64Secret = res.secret() ?: return
-        val secret = BinaryArray.forBase64(base64Secret)
-        val pubKey = secret.cut(32)
-        val sharedSecret = CypherUtils.calculateSharedSecret(pubKey.data(), whatsappKeys.privateKey.toByteArray())
-        val sharedSecretExpanded = CypherUtils.hkdfExpand(sharedSecret, 80)
-        val hmacValidation = CypherUtils.hmacSha256(secret.cut(32).merged(secret.slice(64)), sharedSecretExpanded.slice(32, 64))
-        Validate.isTrue(hmacValidation == secret.slice(32, 64), "Cannot login: Hmac validation failed!")
-        val keysEncrypted = sharedSecretExpanded.slice(64).merged(secret.slice(64))
-        val key = sharedSecretExpanded.cut(32)
-        val keysDecrypted = CypherUtils.aesDecrypt(keysEncrypted, key)
-        whatsappKeys.encKey = keysDecrypted.cut(32)
-    }catch (e: Exception){
-        e.printStackTrace()
-    }
+    val res = jsonResponse.toModel(UserInformationResponse::class.java)
+    val base64Secret = res.secret() ?: return
+    val secret = BinaryArray.forBase64(base64Secret)
+    val pubKey = secret.cut(32)
+    val sharedSecret = CypherUtils.calculateSharedSecret(pubKey.data(), whatsappKeys.privateKey.toByteArray())
+    val sharedSecretExpanded = CypherUtils.hkdfExpand(sharedSecret, 80)
+    val hmacValidation = CypherUtils.hmacSha256(secret.cut(32).merged(secret.slice(64)), sharedSecretExpanded.slice(32, 64))
+    Validate.isTrue(hmacValidation == secret.slice(32, 64), "Cannot login: Hmac validation failed!")
+    val keysEncrypted = sharedSecretExpanded.slice(64).merged(secret.slice(64))
+    val key = sharedSecretExpanded.cut(32)
+    val keysDecrypted = CypherUtils.aesDecrypt(keysEncrypted, key)
+    whatsappKeys.encKey = keysDecrypted.cut(32)
 }
 
 fun decodeBase64EncodedBinaryMessage(payload: String, offset: Int = 0, isRequest: Boolean = false) {
@@ -131,7 +130,12 @@ fun onWhatsappScriptLoaded(tools: DevTools, script: ScriptParsed) {
         return
     }
 
-    tools.send(Debugger.setBreakpoint(Location(script.scriptId, 0, Optional.of(BREAKPOINT)), Optional.empty()))
+    val breakpointPos = tools.send(Debugger.getScriptSource(script.scriptId)).scriptSource.indexOf("keyPair:t,")
+    if(breakpointPos == -1){
+        throw RuntimeException("Cannot find breakpoint position")
+    }
+
+    tools.send(Debugger.setBreakpoint(Location(script.scriptId, 0, Optional.of(breakpointPos)), Optional.empty()))
 }
 
 fun onBreakpointTriggered(tools: DevTools, paused: Paused) {
