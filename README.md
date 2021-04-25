@@ -1,4 +1,4 @@
-# WhatsappWeb4j Request Analyzer
+# Whatsapp Web Request Analyzer
 
 This program was developed on top of [WhatsappWeb4j](https://github.com/Auties00/WhatsappWeb4j) and is fully written in Kotlin.
 
