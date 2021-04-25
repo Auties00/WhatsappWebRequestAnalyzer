@@ -14,16 +14,15 @@ import it.auties.whatsapp4j.utils.Validate
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-import org.openqa.selenium.devtools.v86.debugger.Debugger
-import org.openqa.selenium.devtools.v86.debugger.model.*
-import org.openqa.selenium.devtools.v86.network.Network
-import org.openqa.selenium.devtools.v86.network.model.WebSocketFrameReceived
-import org.openqa.selenium.devtools.v86.network.model.WebSocketFrameSent
-import org.openqa.selenium.devtools.v86.runtime.model.PropertyDescriptor
-import org.openqa.selenium.devtools.v86.runtime.model.RemoteObject
-import org.openqa.selenium.devtools.v86.runtime.model.RemoteObjectId
-import org.openqa.selenium.devtools.v86.runtime.Runtime
-import java.lang.Exception
+import org.openqa.selenium.devtools.v90.debugger.Debugger
+import org.openqa.selenium.devtools.v90.debugger.model.*
+import org.openqa.selenium.devtools.v90.network.Network
+import org.openqa.selenium.devtools.v90.network.model.WebSocketFrameReceived
+import org.openqa.selenium.devtools.v90.network.model.WebSocketFrameSent
+import org.openqa.selenium.devtools.v90.runtime.model.PropertyDescriptor
+import org.openqa.selenium.devtools.v90.runtime.model.RemoteObject
+import org.openqa.selenium.devtools.v90.runtime.model.RemoteObjectId
+import org.openqa.selenium.devtools.v90.runtime.Runtime
 import java.lang.RuntimeException
 
 import java.util.*
@@ -31,7 +30,7 @@ import java.util.*
 val decoder = BinaryDecoder()
 lateinit var whatsappKeys: WhatsappKeys
 
-fun main() {
+fun main(args: Array<String>) {
     val driver = initializeSelenium()
     val tools = driver.devTools
     tools.createSession()

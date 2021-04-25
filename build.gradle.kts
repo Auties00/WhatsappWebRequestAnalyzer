@@ -21,11 +21,13 @@ repositories {
 
 dependencies {
     implementation("com.github.auties00", "whatsappweb4j", "1.2")
-    implementation("org.seleniumhq.selenium", "selenium-java", "4.0.0-beta-2")
+    implementation("org.seleniumhq.selenium", "selenium-java", "4.0.0-beta-3")
+    implementation("org.seleniumhq.selenium", "selenium-devtools-v90", "4.0.0-beta-3")
 }
 
 val fatJar = task("fatJar", type = Jar::class) {
-    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     archiveBaseName.set("${project.name}-with-dependencies")
     manifest {
         attributes["Implementation-Title"] = "Analyzer"
@@ -36,7 +38,6 @@ val fatJar = task("fatJar", type = Jar::class) {
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
     with(tasks.jar.get())
 }
-
 
 tasks {
     "build" {
