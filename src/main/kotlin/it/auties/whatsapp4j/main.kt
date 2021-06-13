@@ -1,31 +1,29 @@
 package it.auties.whatsapp4j
 
-import it.auties.whatsapp4j.binary.BinaryDecoder
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.devtools.DevTools
 import it.auties.whatsapp4j.binary.BinaryArray
+import it.auties.whatsapp4j.binary.BinaryDecoder
+import it.auties.whatsapp4j.binary.BinaryFlag
+import it.auties.whatsapp4j.binary.BinaryMetric
 import it.auties.whatsapp4j.model.WhatsappNode
-import it.auties.whatsapp4j.model.WhatsappProtobuf
 import it.auties.whatsapp4j.model.WhatsappResponse
 import it.auties.whatsapp4j.response.impl.UserInformationResponse
 import it.auties.whatsapp4j.response.model.JsonResponse
 import it.auties.whatsapp4j.utils.CypherUtils
 import it.auties.whatsapp4j.utils.Validate
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
-
+import org.openqa.selenium.chrome.ChromeDriver
+import org.openqa.selenium.devtools.DevTools
 import org.openqa.selenium.devtools.v90.debugger.Debugger
 import org.openqa.selenium.devtools.v90.debugger.model.*
 import org.openqa.selenium.devtools.v90.network.Network
 import org.openqa.selenium.devtools.v90.network.model.WebSocketFrameReceived
 import org.openqa.selenium.devtools.v90.network.model.WebSocketFrameSent
+import org.openqa.selenium.devtools.v90.runtime.Runtime
 import org.openqa.selenium.devtools.v90.runtime.model.PropertyDescriptor
 import org.openqa.selenium.devtools.v90.runtime.model.RemoteObject
 import org.openqa.selenium.devtools.v90.runtime.model.RemoteObjectId
-import org.openqa.selenium.devtools.v90.runtime.Runtime
-import java.lang.RuntimeException
-
 import java.util.*
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 val decoder = BinaryDecoder()
 lateinit var whatsappKeys: WhatsappKeys
@@ -48,8 +46,8 @@ fun onJsonMessageSent(request: WhatsappResponse){
     println("Sent JSON Message $request")
 }
 
-fun onBinaryMessageSent(tag: String, request: WhatsappNode) {
-    println("Sent Binary Message $tag,$request")
+fun onBinaryMessageSent(tag: String, request: WhatsappNode, metric: BinaryMetric?, flag: BinaryFlag?) {
+    println("Sent Binary Message(${metric?.name},${flag?.name}) $tag,$request")
 }
 
 fun onJsonMessageReceived(request: WhatsappResponse){
@@ -69,8 +67,6 @@ fun onMessageReceived(msg: WebSocketFrameReceived) {
         return
     }
 
-    WhatsappProtobuf.ProtocolMessage.getDefaultInstance().type
-
     decodeBase64EncodedBinaryMessage(payload)
 }
 
@@ -82,11 +78,7 @@ fun onMessageSent(msg: WebSocketFrameSent) {
         return
     }
 
-    decodeBase64EncodedBinaryMessage(
-        payload,
-        offset = 2,
-        isRequest = true
-    )
+    decodeBase64EncodedBinaryMessage(payload, true)
 }
 
 fun initializeKeys(jsonResponse: JsonResponse) {
@@ -104,24 +96,50 @@ fun initializeKeys(jsonResponse: JsonResponse) {
     whatsappKeys.encKey = keysDecrypted.cut(32)
 }
 
-fun decodeBase64EncodedBinaryMessage(payload: String, offset: Int = 0, isRequest: Boolean = false) {
+fun decodeBase64EncodedBinaryMessage(payload: String, isRequest: Boolean = false) {
     val binaryMessage = BinaryArray.forBase64(payload)
     val tagAndMessagePair = binaryMessage.indexOf(',').map { binaryMessage.split(it!!) }.orElseThrow()
+
     val messageTag = tagAndMessagePair.first.toString()
     val messageContent = tagAndMessagePair.second
+
+    val offset = if(isRequest) 2 else 0;
     val message = messageContent.slice(32 + offset)
     val decryptedMessage = CypherUtils.aesDecrypt(message, whatsappKeys.encKey)
     val whatsappMessage = decoder.decodeDecryptedMessage(decryptedMessage)
+
     when {
-        isRequest -> onBinaryMessageSent(messageTag, whatsappMessage)
+        isRequest -> {
+            val metric = toMetric(messageContent.at(0))
+            val flag = toFlag(messageContent.at(1))
+            onBinaryMessageSent(messageTag, whatsappMessage, metric, flag)
+        }
+
         else -> onBinaryMessageReceived(messageTag, whatsappMessage)
     }
 }
 
+fun toMetric(byte: Byte): BinaryMetric? {
+    return BinaryMetric.values().firstOrNull { it.data() == java.lang.Byte.toUnsignedInt(byte) }
+}
+
+fun toFlag(byte: Byte): BinaryFlag? {
+    return BinaryFlag.values().first { it.data() == byte }
+}
+
 fun initializeSelenium(): ChromeDriver {
-    System.setProperty("webdriver.chrome.driver", PathUtils.fromJar("chromedriver.exe"))
+    System.setProperty("webdriver.chrome.driver", PathUtils.fromJar("chromedriver${determinePlatformExecutable()}"))
     Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate({}, 0, 1, TimeUnit.MINUTES)
     return ChromeDriver()
+}
+
+fun determinePlatformExecutable(): String {
+    val os = System.getProperty("os.name").toLowerCase()
+    return when {
+        os.contains("win") -> ".exe"
+        os.contains("nix") || os.contains("nux") || os.contains("aix") -> ""
+        else -> throw UnsupportedOperationException("Whatsapp request analyzer only works on Windows and Linux")
+    }
 }
 
 fun onWhatsappScriptLoaded(tools: DevTools, script: ScriptParsed) {
