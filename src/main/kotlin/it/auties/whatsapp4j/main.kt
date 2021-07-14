@@ -147,12 +147,12 @@ fun onWhatsappScriptLoaded(tools: DevTools, script: ScriptParsed) {
         return
     }
 
-    val breakpointPos = tools.send(Debugger.getScriptSource(script.scriptId)).scriptSource.indexOf("keyPair:t,")
-    if(breakpointPos == -1){
-        throw RuntimeException("Cannot find breakpoint position")
-    }
-
-    tools.send(Debugger.setBreakpoint(Location(script.scriptId, 0, Optional.of(breakpointPos)), Optional.empty()))
+    tools.send(Debugger.getScriptSource(script.scriptId))
+        .scriptSource
+        .lines()
+        .mapIndexed { lineNumber, line -> lineNumber to line.indexOf("keyPair:t,") }
+        .first { it.second != -1 }
+        .let { tools.send(Debugger.setBreakpoint(Location(script.scriptId, it.first, Optional.of(it.second)), Optional.empty())) }
 }
 
 fun onBreakpointTriggered(tools: DevTools, paused: Paused) {
