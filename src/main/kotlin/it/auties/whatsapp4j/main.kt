@@ -104,7 +104,9 @@ fun decodeBase64EncodedBinaryMessage(payload: String, isRequest: Boolean = false
     val messageTag = tagAndMessagePair.first.toString()
     val messageContent = tagAndMessagePair.second
 
-    val decryptedMessage = CypherUtils.aesDecrypt(messageContent, whatsappKeys.encKey)
+    val offset = if(isRequest) 2 else 0;
+    val message = messageContent.slice(32 + offset)
+    val decryptedMessage = CypherUtils.aesDecrypt(message, whatsappKeys.encKey)
     val whatsappMessage = decoder.decodeDecryptedMessage(decryptedMessage)
 
     when {
