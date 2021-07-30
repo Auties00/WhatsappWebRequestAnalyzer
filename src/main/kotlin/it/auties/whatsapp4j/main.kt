@@ -82,6 +82,7 @@ fun onMessageSent(msg: WebSocketFrameSent) {
 }
 
 fun initializeKeys(jsonResponse: JsonResponse) {
+    println("Initializing keys $jsonResponse")
     val res = jsonResponse.toModel(UserInformationResponse::class.java)
     val base64Secret = res.secret() ?: return
     val secret = BinaryArray.forBase64(base64Secret)
@@ -103,9 +104,7 @@ fun decodeBase64EncodedBinaryMessage(payload: String, isRequest: Boolean = false
     val messageTag = tagAndMessagePair.first.toString()
     val messageContent = tagAndMessagePair.second
 
-    val offset = if(isRequest) 2 else 0;
-    val message = messageContent.slice(32 + offset)
-    val decryptedMessage = CypherUtils.aesDecrypt(message, whatsappKeys.encKey)
+    val decryptedMessage = CypherUtils.aesDecrypt(messageContent, whatsappKeys.encKey)
     val whatsappMessage = decoder.decodeDecryptedMessage(decryptedMessage)
 
     when {
@@ -120,11 +119,13 @@ fun decodeBase64EncodedBinaryMessage(payload: String, isRequest: Boolean = false
 }
 
 fun toMetric(byte: Byte): BinaryMetric? {
-    return BinaryMetric.values().firstOrNull { it.data() == java.lang.Byte.toUnsignedInt(byte) }
+    return BinaryMetric.values()
+        .firstOrNull { it.data() == java.lang.Byte.toUnsignedInt(byte) }
 }
 
 fun toFlag(byte: Byte): BinaryFlag? {
-    return BinaryFlag.values().first { it.data() == byte }
+    return BinaryFlag.values()
+        .firstOrNull { it.data() == byte }
 }
 
 fun initializeSelenium(): ChromeDriver {

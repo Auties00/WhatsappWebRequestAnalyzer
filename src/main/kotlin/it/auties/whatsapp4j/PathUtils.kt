@@ -6,8 +6,11 @@ import java.nio.file.Path
 import java.nio.file.StandardOpenOption
 
 object PathUtils {
+    private val directory = File(System.getProperty("user.home") + "/.whatsapp")
+
     fun fromJar(input: String): String {
-        val file = File(System.getProperty("user.home"), input)
+        directory.mkdirs()
+        val file = File(directory, input)
         if(!file.exists()) {
             Files.write(
                 file.toPath(),
