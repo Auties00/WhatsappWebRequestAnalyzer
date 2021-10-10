@@ -137,7 +137,7 @@ fun initializeSelenium(): ChromeDriver {
 }
 
 fun determinePlatformExecutable(): String {
-    val os = System.getProperty("os.name").toLowerCase()
+    val os = System.getProperty("os.name").lowercase()
     return when {
         os.contains("win") -> ".exe"
         os.contains("nix") || os.contains("nux") || os.contains("aix") -> ""
