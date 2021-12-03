@@ -22,10 +22,30 @@ repositories {
 
 dependencies {
     implementation("com.github.auties00", "standard", "2.2.2-SNAPSHOT")
-    implementation("com.github.auties00", "multidevice", "2.2.2-SNAPSHOT")
-    implementation("org.seleniumhq.selenium", "selenium-java", "4.0.0-beta-3")
-    implementation("org.seleniumhq.selenium", "selenium-devtools-v90", "4.0.0-beta-3")
+    implementation("com.github.auties00", "whatsappweb4j", "2.2.2-SNAPSHOT")
+    implementation("org.seleniumhq.selenium", "selenium-java", "4.0.0-rc-1")
+    implementation("org.seleniumhq.selenium", "selenium-devtools", "4.0.0-rc-1")
     implementation("org.bouncycastle", "bcpkix-jdk15on", "1.68")
+}
+
+val fatJar = task("fatJar", type = Jar::class) {
+    exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveBaseName.set("${project.name}-with-dependencies")
+    manifest {
+        attributes["Implementation-Title"] = "Analyzer"
+        attributes["Implementation-Version"] = archiveVersion
+        attributes["Main-Class"] = "it.auties.analyzer.MainKt"
+    }
+
+    from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+    with(tasks.jar.get())
+}
+
+tasks {
+    "build" {
+        dependsOn(fatJar)
+    }
 }
 
 tasks.withType<JavaCompile> {
