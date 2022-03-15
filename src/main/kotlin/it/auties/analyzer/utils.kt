@@ -45,7 +45,6 @@ private fun getPlatformFolder(): String {
 private fun getPlatformExtension(): String =
     if (System.getProperty("os.name").lowercase().contains("win")) "exe" else ""
 
-
 fun String.indexesOf(input: String): List<Int> {
     val results = ArrayList<Int>()
     var last: Int = indexOf(input)
