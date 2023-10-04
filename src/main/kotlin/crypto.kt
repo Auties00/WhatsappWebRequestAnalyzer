@@ -1,8 +1,8 @@
 package it.auties.analyzer
 
 import it.auties.whatsapp.binary.BinaryDecoder
-import it.auties.whatsapp.crypto.AesGmc
-import it.auties.whatsapp.model.request.Node
+import it.auties.whatsapp.crypto.AesGcm
+import it.auties.whatsapp.model.node.Node
 import org.openqa.selenium.devtools.v114.network.model.WebSocketFrameReceived
 import org.openqa.selenium.devtools.v114.network.model.WebSocketFrameSent
 import java.util.Base64
@@ -32,22 +32,31 @@ private fun handleBinaryMessage(payload: String, request: Boolean) {
     }.getOrNull() ?: return
 
     val counter = if(request) whatsappKeys.writeIv.getAndIncrement() else whatsappKeys.readIv.getAndIncrement()
-    val node = whatsappKeys.keys.copy()
-        .firstNotNullOfOrNull { decodeNodeOrFallback(message, counter, it, request) }
-    if (node != null) {
-        return
+    for (key in whatsappKeys.keys) {
+        val result = decodeNodes(message, counter, key, request)
+        if(result.isNotEmpty()){
+            return
+        }
     }
-
     println("Cannot decode node")
 }
 
-private fun decodeNodeOrFallback(
-    message: MessageWrapper,
+private fun decodeNodes(
+    wrapper: MessageWrapper,
     counter: Long,
     key: ByteArray,
     request: Boolean
+): List<Node> = wrapper.decoded
+    .mapNotNull { tryDecodeNode(counter, it, key, request) }
+    .toList()
+
+private fun tryDecodeNode(
+    counter: Long,
+    it: ByteArray,
+    key: ByteArray,
+    request: Boolean
 ): Node? {
-    val result = tryDecodeNode(message, counter, key, request)
+    val result = decodeNode(counter, it, key, request)
     if (result != null) {
         return result
     }
@@ -56,14 +65,11 @@ private fun decodeNodeOrFallback(
     val lowerBound = max(counter - 10, 0)
     val upperBound = counter + 10
     return (lowerBound..upperBound)
-        .firstNotNullOfOrNull { tryDecodeNode(message, it, key, request) }
+        .firstNotNullOfOrNull { hypotheticalCounter -> decodeNode(hypotheticalCounter, it, key, request) }
 }
 
-private fun tryDecodeNode(message: MessageWrapper, counter: Long, key: ByteArray, request: Boolean): Node? =
-    message.decoded.firstNotNullOfOrNull { decoded -> decodeNode(counter, decoded, key, request) }
-
 private fun decodeNode(counter: Long, decoded: ByteArray, key: ByteArray, request: Boolean) = runCatching {
-    val plainText = AesGmc.decrypt(counter, decoded, key)
+    val plainText = AesGcm.decrypt(counter, decoded, key)
     val decoder = BinaryDecoder()
     val node = decoder.decode(plainText)
     if (request) {

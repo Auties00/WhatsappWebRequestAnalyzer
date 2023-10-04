@@ -26,14 +26,10 @@ class MessageWrapper(raw: ByteArray) {
         }
     }
 
-    private fun decodeLength(input: DataInputStream): Int = runCatching {
+    private fun decodeLength(input: DataInputStream): Int {
         val lengthBytes = ByteArray(3)
         input.readFully(lengthBytes)
-        this.decodeLength(lengthBytes)
-    }.getOrDefault(-1)
-
-    private fun decodeLength(input: ByteArray): Int {
-        val buffer = BytesHelper.newBuffer(input)
+        val buffer = BytesHelper.newBuffer(lengthBytes)
         return buffer.readByte().toInt() shl 16 or buffer.readUnsignedShort()
     }
 }
