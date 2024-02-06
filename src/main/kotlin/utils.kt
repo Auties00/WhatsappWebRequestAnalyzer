@@ -1,6 +1,5 @@
 package it.auties.analyzer
 
-import io.github.bonigarcia.wdm.WebDriverManager
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
 import java.nio.file.Path
@@ -9,9 +8,12 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 fun initialize(): ChromeDriver {
-    WebDriverManager.chromedriver().setup()
+    // you can download the driver from https://googlechromelabs.github.io/chrome-for-testing/#stable
+    // and specify the path to the driver in the following line
+    System.setProperty("webdriver.chrome.driver", "C:\\Users\\hunter\\Downloads\\chromedriver-win64\\chromedriver.exe")
     Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate({}, 0, 1, TimeUnit.MINUTES)
     val options = ChromeOptions()
+    options.setBinary("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe")
     options.addArguments("--user-data-dir=${Path.of("./.profile").toAbsolutePath()}")
     return ChromeDriver(options)
 }
