@@ -8,9 +8,7 @@ secure WebSocket and vice-versa. This is very useful if you want to contribute t
 ### How to run
 
 Follow these steps to run the program:
-
-1. Download and install Java 16 from [Oracle's official website](https://www.oracle.com/java/technologies/javase-jdk16-downloads.html).
-2. Download the latest version of Chrome Driver from [Google Chrome Labs](https://googlechromelabs.github.io/chrome-for-testing/#stable).
-3. Specify the path to the downloaded Chrome Driver in the `utils.kt` file.
+Download and install Java 16 from [Oracle's official website](https://www.oracle.com/java/technologies/javase-jdk16-downloads.html).
+Make sure you have latest chrome version installed
 
 Once these steps are completed, launch the program. A browser window will open, and all data sent and received by WhatsApp will be displayed in the console.
