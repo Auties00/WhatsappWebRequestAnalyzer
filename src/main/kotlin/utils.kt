@@ -1,6 +1,5 @@
 package it.auties.analyzer
 
-import io.github.bonigarcia.wdm.WebDriverManager
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
 import java.nio.file.Path
@@ -9,7 +8,6 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 fun initialize(): ChromeDriver {
-    WebDriverManager.chromedriver().setup()
     Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate({}, 0, 1, TimeUnit.MINUTES)
     val options = ChromeOptions()
     options.addArguments("--user-data-dir=${Path.of("./.profile").toAbsolutePath()}")

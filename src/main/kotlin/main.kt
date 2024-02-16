@@ -1,7 +1,7 @@
 package it.auties.analyzer
 
-import org.openqa.selenium.devtools.v114.debugger.Debugger
-import org.openqa.selenium.devtools.v114.network.Network
+import org.openqa.selenium.devtools.v121.debugger.Debugger
+import org.openqa.selenium.devtools.v121.network.Network
 import java.util.Optional.empty
 
 val whatsappKeys: Keys = Keys()

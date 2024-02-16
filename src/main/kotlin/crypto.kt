@@ -3,9 +3,9 @@ package it.auties.analyzer
 import it.auties.whatsapp.binary.BinaryDecoder
 import it.auties.whatsapp.crypto.AesGcm
 import it.auties.whatsapp.model.node.Node
-import org.openqa.selenium.devtools.v114.network.model.WebSocketFrameReceived
-import org.openqa.selenium.devtools.v114.network.model.WebSocketFrameSent
-import java.util.Base64
+import org.openqa.selenium.devtools.v121.network.model.WebSocketFrameReceived
+import org.openqa.selenium.devtools.v121.network.model.WebSocketFrameSent
+import java.util.*
 import kotlin.math.max
 
 fun handleReceivedMessage(msg: WebSocketFrameReceived) {
@@ -70,8 +70,8 @@ private fun tryDecodeNode(
 
 private fun decodeNode(counter: Long, decoded: ByteArray, key: ByteArray, request: Boolean) = runCatching {
     val plainText = AesGcm.decrypt(counter, decoded, key)
-    val decoder = BinaryDecoder()
-    val node = decoder.decode(plainText)
+    val decoder = BinaryDecoder(plainText)
+    val node = decoder.decode()
     if (request) {
         onMessageSent(node)
     } else {
