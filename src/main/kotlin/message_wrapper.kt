@@ -1,16 +1,10 @@
 package it.auties.analyzer
 
-import it.auties.whatsapp.util.BytesHelper
-import lombok.Value
-import lombok.experimental.Accessors
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
-import java.io.IOException
 import java.util.*
 
 
-@Value
-@Accessors(fluent = true)
 class MessageWrapper(raw: ByteArray) {
     var decoded: LinkedList<ByteArray> = LinkedList<ByteArray>()
 
