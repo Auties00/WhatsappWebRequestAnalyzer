@@ -1,10 +1,10 @@
 package it.auties.analyzer
 
 import org.openqa.selenium.devtools.DevTools
-import org.openqa.selenium.devtools.v121.debugger.Debugger
-import org.openqa.selenium.devtools.v121.debugger.model.Location
-import org.openqa.selenium.devtools.v121.debugger.model.Paused
-import org.openqa.selenium.devtools.v121.debugger.model.ScriptParsed
+import org.openqa.selenium.devtools.v124.debugger.Debugger
+import org.openqa.selenium.devtools.v124.debugger.model.Location
+import org.openqa.selenium.devtools.v124.debugger.model.Paused
+import org.openqa.selenium.devtools.v124.debugger.model.ScriptParsed
 import java.util.Optional.empty
 import java.util.Optional.of
 
@@ -32,7 +32,7 @@ private fun createBreakpoint(
 fun onBreakpointTriggered(tools: DevTools, paused: Paused) {
     val frame = paused.callFrames.first()
     val local = getKeypairObjectId(frame)
-    val key = getKeyValue("e", local, tools)!!
+    val key = getKeyValue("a", local, tools)!!
     whatsappKeys.writeIv.set(0)
     whatsappKeys.readIv.set(0)
     println("Adding key: $key")
